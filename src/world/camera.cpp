@@ -24,7 +24,7 @@ void cg::world::camera::set_position(float3 in_position)
 
 void cg::world::camera::set_theta(float in_theta)
 {
-	theta = in_theta * static_cast < float>(M_PI) / 180.f;
+	theta = in_theta * static_cast<float>(M_PI) / 180.f;
 }
 
 void cg::world::camera::set_phi(float in_phi)
@@ -61,17 +61,17 @@ void cg::world::camera::set_z_far(float in_z_far)
 
 const float4x4 cg::world::camera::get_view_matrix() const
 {
+	float3 up{0.f, 1.f, 0.f};
 	float3 eye = position + get_direction();
-	float3 up = { 0.f, 1.f, 0.f };
 	float3 z_axis = normalize(position - eye);
 	float3 x_axis = normalize(cross(up, z_axis));
 	float3 y_axis = cross(z_axis, x_axis);
-	return float4x4({ 
-		{ x_axis.x, x_axis.y, x_axis.z, 0 }, 
+	return float4x4{
+		{ x_axis.x, x_axis.y, x_axis.z, 0},
 		{ y_axis.x, y_axis.y, y_axis.z, 0 },
-		{ z_axis.x, z_axis.y, z_axis.y, 0 },
-		{dot(x_axis, position), -dot(y_axis, position), -dot(z_axis, position), 1}
-		});
+		{ z_axis.x, z_axis.y, z_axis.z, 0 },
+		{ -dot(x_axis, position), -dot(y_axis, position), -dot(z_axis, position), 1 }
+	};
 }
 
 #ifdef DX12
@@ -91,12 +91,11 @@ const DirectX::XMMATRIX cg::world::camera::get_dxm_projection_matrix() const
 const float4x4 cg::world::camera::get_projection_matrix() const
 {
 	float f = 1.f / std::tanf(angle_of_view / 2.f);
-
-	return float4x4{
+	return float4x4{ 
 		{ f / aspect_ratio, 0, 0, 0 },
 		{ 0, f, 0, 0 },
 		{ 0, 0, z_far / (z_near - z_far), -1 },
-		{0, 0, (z_far * z_near) / (z_near - z_far), 0}
+		{ 0, 0, (z_far * z_near) / (z_near - z_far), 0 }
 	};
 }
 
@@ -107,7 +106,11 @@ const float3 cg::world::camera::get_position() const
 
 const float3 cg::world::camera::get_direction() const
 {
-	return float3{std::sin(theta) * std::cos(phi), std::sin(phi), -std::cos(theta) * std::cos(phi)};
+	return float3{ 
+		std::sin(theta) * std::cos(phi),
+		std::sin(phi),
+		- std::cos(phi) * std::cos(theta)
+	};
 }
 
 const float3 cg::world::camera::get_right() const
@@ -117,5 +120,5 @@ const float3 cg::world::camera::get_right() const
 
 const float3 cg::world::camera::get_up() const
 {
-	return cross(get_right(), get_direction());
+		return cross(get_right(), get_direction());
 }

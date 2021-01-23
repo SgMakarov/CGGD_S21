@@ -59,9 +59,7 @@ inline void rasterizer<VB, RT>::clear_render_target(const RT& in_clear_value, co
 	if (render_target)
 	{
 		for (size_t i = 0; i < render_target->get_number_of_elements(); i++)
-		{
 			render_target->item(i) = in_clear_value;
-		}
 	}
 }
 
