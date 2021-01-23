@@ -3,18 +3,8 @@
   "Id": "a3e4f3ab-0ffb-f141-5872-7d63c4c7c2c9",
   "Items": [
     {
-      "Id": "9095d557-e71b-4a06-a69e-b1f9f7184731",
-      "Command": "720p",
-      "Items": [
-        {
-          "Id": "b72b7e87-83fa-4552-9b10-7b6deaa49964",
-          "Command": "--height=720"
-        },
-        {
-          "Id": "9359dd2c-3bb6-4e31-b8ca-8d9ed4f96b39",
-          "Command": "--width=1280"
-        }
-      ]
+      "Id": "fea601ec-1f12-4e0d-b49d-cd0127a1bb49",
+      "Command": ""
     },
     {
       "Id": "fb9ad967-f80f-459a-b939-80fb1d1c5b06",
