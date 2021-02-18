@@ -57,7 +57,7 @@ SCENARIO("Lambertian shading test")
 
 			raytracer.closest_hit_shader =
 				[&](const cg::renderer::ray& ray, cg::renderer::payload& payload,
-					const cg::renderer::triangle<cg::vertex>& triangle) {
+					const cg::renderer::triangle<cg::vertex>& triangle, size_t depth) {
 					float3 result_color = float3{ 0.f, 0.f, 0.f };
 
 					float3 point = ray.position + ray.direction * payload.t;
@@ -83,7 +83,7 @@ SCENARIO("Lambertian shading test")
 
 			THEN("Make sure that image is correct")
 			{
-				for (size_t x = 0; x < 5; x++)
+				for (size_t x = 0; x < 2; x++)
 				{
 					for (size_t y = 0; y < 5; y++)
 					{

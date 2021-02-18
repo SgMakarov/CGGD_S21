@@ -91,8 +91,7 @@ struct color
 	{
 
 		return float3{ static_cast<float>(r), static_cast<float>(g),
-					   static_cast<float>(b) } /
-			   255.f;
+					   static_cast<float>(b) };
 	};
 	float r;
 	float g;

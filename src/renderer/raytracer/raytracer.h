@@ -119,23 +119,25 @@ public:
 	void build_acceleration_structure();
 	std::vector<aabb<VB>> acceleration_structures;
 
-	void ray_generation(float3 position, float3 direction, float3 right, float3 up);
+	void ray_generation(
+		float3 position, float3 direction, float3 right, float3 up,
+		float frame_weight = 1);
 
 	payload trace_ray(const ray& ray, size_t depth, float max_t = 1000.f, float min_t = 0.001f) const;
 	payload intersection_shader(const triangle<VB>& triangle, const ray& ray) const;
 
 	std::function<payload(const ray& ray)> miss_shader = nullptr;
-	std::function<payload(const ray& ray, payload& payload, const triangle<VB>& triangle)> closest_hit_shader =
+	std::function<payload(const ray& ray, payload& payload, const triangle<VB>& triangle, size_t depth)> closest_hit_shader =
 		nullptr;
 	std::function<payload(const ray& ray, payload& payload, const triangle<VB>& triangle)> any_hit_shader =
 		nullptr;
+	float get_random(const int thread_num, float range = 0.1f) const;
 
 
 protected:
 	std::shared_ptr<cg::resource<RT>> render_target;
 	std::vector<std::shared_ptr<cg::resource<VB>>> per_shape_vertex_buffer;
 
-	float get_random(const int thread_num, float range = 0.1f) const;
 
 	size_t width = 1920;
 	size_t height = 1080;
@@ -190,50 +192,68 @@ inline void raytracer<VB, RT>::set_viewport(size_t in_width, size_t in_height)
 	height = in_height;
 }
 
+
 template<typename VB, typename RT>
 inline void raytracer<VB, RT>::ray_generation(
-	float3 position, float3 direction, float3 right, float3 up)
+	float3 position, float3 direction, float3 right, float3 up, float frame_weight)
 {
-	for (int x = 0; x < width; x++) 
-	{	
+	for (int x = 0; x < width; x++)
+	{
 		#pragma omp parallel for
 		for (int y = 0; y < height; y++)
 		{
-			//[0; width - 1] -> [0; 1] -> [0; 2]
-			//[-1; 1]
-			float u = 2.f * x / static_cast<float>(width - 1) - 1.f;
+			float x_jitter = get_random(omp_get_thread_num() + clock());
+			float y_jitter = get_random(omp_get_thread_num() + clock());
+			float u = (2.f * x) / static_cast<float>(width - 1) - 1.f;
 			u *= static_cast<float>(width) / static_cast<float>(height);
-			float v = 2.f * y / static_cast<float>(height - 1) - 1.f;
+			float v = (2.f * y) / static_cast<float>(height - 1) - 1.f;
 
-			float u_delta = 1.f / static_cast<float>(width - 1);
-			u_delta *= static_cast<float>(width) / static_cast<float>(height);
+			// TAA
 
-			float v_delta = 1.f / static_cast<float>(height - 1);
- 
-			float3 ray_direction = direction + u * right - v * up; 
+			float3 ray_dir = direction + (u)*right - (v)*up;
+
+			ray ray(position, ray_dir);
+			payload payload = trace_ray(ray, 7);
+			cg::color accumed =
+				cg::color::from_float3(render_target->item(x, y).to_float3());
+
+			float fw = frame_weight;
+			float ifw = 1.f - frame_weight;
+			cg::color result{ (accumed.r * ifw + payload.color.r * fw),
+							  (accumed.g * ifw + payload.color.g * fw),
+							  (accumed.b * ifw + payload.color.b * fw) };
+
+			render_target->item(x, y) = RT::from_color(result);
+
+			// SSAA
+			 /*float3 ray_dir = direction + u * right - v * up;
+			 float u_delta = .5f / static_cast<float>(width - 1);
+			 u_delta *= static_cast<float>(width) /
+			 static_cast<float>(height); float v_delta = .5f /
+			 static_cast<float>(height - 1); ray ray0(position, ray_dir);
+			 payload payload0 = trace_ray(ray0, 1);
+
+			 ray ray1(position, ray_dir + u_delta * right);
+			 payload payload1 = trace_ray(ray1, 1);
+
+			 ray ray2(position, ray_dir - v_delta * up);
+			 payload payload2 = trace_ray(ray2, 1);
+
+			 ray ray3(position, ray_dir + u_delta * right - v_delta * up);
+			 payload payload3 = trace_ray(ray3, 1);
 			
-			ray ray_0(position, ray_direction);
-			payload payload_0 = trace_ray(ray_0, 1);
-
-			ray ray_1(position, ray_direction  + u_delta * right);
-			payload payload_1 = trace_ray(ray_1, 1);
-
-			ray ray_2(position, ray_direction - v_delta * up);
-			payload payload_2 = trace_ray(ray_2, 1);
-
-			ray ray_3(position, ray_direction + u_delta * right - v_delta * up);
-			payload payload_3 = trace_ray(ray_3, 1);
-
-			cg::color accumed_color {
-				(payload_0.color.r + payload_1.color.r + payload_2.color.r + payload_3.color.r) / 4.f,
-				(payload_0.color.g + payload_1.color.g + payload_2.color.g + payload_3.color.g) / 4.f,
-				(payload_0.color.b + payload_1.color.b + payload_2.color.b + payload_3.color.b) / 4.f,
-			};
+			 cg::color accumed_color{ (payload0.color.r + payload1.color.r
+			 + 						  payload2.color.r + payload3.color.r) / 							 4.f,
+			 (payload0.color.g
+			+ payload1.color.g + 						  payload2.color.g +
+			payload3.color.g) / 							 4.f, 						 (payload0.color.b + payload1.color.b + 						  payload2.color.b
+			+ payload3.color.b) / 							 4.f };
 			render_target->item(x, y) = RT::from_color(accumed_color);
+
+			*/
 		}
 	}
 }
-
 template<typename VB, typename RT>
 inline payload
 	raytracer<VB, RT>::trace_ray(const ray& ray, size_t depth, float max_t, float min_t) const
@@ -268,7 +288,7 @@ inline payload
 	if (closest_hit_payload.t < max_t)
 	{
 		if (closest_hit_shader) 
-			return closest_hit_shader(ray, closest_hit_payload, *closest_triangle);
+			return closest_hit_shader(ray, closest_hit_payload, *closest_triangle, depth);
 	}
 
 	return miss_shader(ray);
