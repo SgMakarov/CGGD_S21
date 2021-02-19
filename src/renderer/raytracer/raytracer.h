@@ -213,7 +213,7 @@ inline void raytracer<VB, RT>::ray_generation(
 			float3 ray_dir = direction + (u)*right - (v)*up;
 
 			ray ray(position, ray_dir);
-			payload payload = trace_ray(ray, 7);
+			payload payload = trace_ray(ray, 4);
 			cg::color accumed =
 				cg::color::from_float3(render_target->item(x, y).to_float3());
 
